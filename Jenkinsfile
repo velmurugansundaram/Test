@@ -3,15 +3,16 @@ pipeline {
 
     environment {
         DOCKER_IMAGE_NAME = "my_docker_image"
-        DOCKERHUB_CREDENTIALS_ID = 'dockerhub' // Ensure this matches your Jenkins credential ID
-        GIT_REPO = 'git@github.com:velmurugansundaram/Test.git'
-        GIT_BRANCH = 'main'  // Ensure this is set to your correct branch
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub' // Jenkins credentials ID for Docker Hub
+        GIT_REPO = 'git@github.com:velmurugansundaram/Test.git' // Your Git repository URL
+        GIT_BRANCH = 'main' // Your branch name
     }
 
     stages {
         stage('Checkout SCM') {
             steps {
                 script {
+                    // Checkout the Git repository
                     checkout([$class: 'GitSCM', branches: [[name: GIT_BRANCH]], userRemoteConfigs: [[url: GIT_REPO, credentialsId: 'github-ssh']]])
                 }
             }
@@ -20,7 +21,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image
+                    // Build Docker image with Ansible installed
                     sh '''
                     docker build -t ${DOCKER_IMAGE_NAME} .
                     '''
@@ -44,11 +45,11 @@ pipeline {
             steps {
                 script {
                     // Login to Docker Hub and push image
-                    withCredentials([string(credentialsId: DOCKERHUB_CREDENTIALS_ID, variable: 'DOCKER_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                         sh '''
-                        echo "${DOCKER_PASSWORD}" | docker login -u velmurugan1412 --password-stdin
-                        docker tag ${DOCKER_IMAGE_NAME} velmurugan1412/${DOCKER_IMAGE_NAME}:latest
-                        docker push velmurugan1412/${DOCKER_IMAGE_NAME}:latest
+                        echo "${DOCKER_PASSWORD}" | docker login -u ${DOCKER_USERNAME} --password-stdin
+                        docker tag ${DOCKER_IMAGE_NAME} ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}:latest
+                        docker push ${DOCKER_USERNAME}/${DOCKER_IMAGE_NAME}:latest
                         '''
                     }
                 }

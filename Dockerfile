@@ -1,18 +1,18 @@
-# Use a base image
+# Use the official Ubuntu image
 FROM ubuntu:20.04
 
 # Set the working directory
 WORKDIR /app
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && apt-add-repository --yes --update ppa:ansible/ansible \
-    && apt-get install -y ansible \
-    && apt-get clean
+# Update the package list and install required packages
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    apt-add-repository --yes --update ppa:ansible/ansible && \
+    apt-get install -y ansible && \
+    apt-get clean
 
-# Copy your playbook and any other necessary files
+# Copy the contents of the current directory to the container
 COPY . .
 
-# Define default command
+# Set the entrypoint (optional, depending on your needs)
 CMD ["bash"]
