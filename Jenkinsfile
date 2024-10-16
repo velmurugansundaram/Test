@@ -1,14 +1,15 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'my_docker_image'
-        CONTAINER_NAME = 'ansible_container'
-        DOCKER_CREDENTIALS = 'dockerhub'
+        DOCKER_IMAGE = 'my_docker_image'  // Specify your Docker image name
+        CONTAINER_NAME = 'ansible_container' // Name of the running container
+        DOCKER_CREDENTIALS = 'dockerhub' // Docker Hub credentials ID in Jenkins
+        GITHUB_CREDENTIALS = 'github-ssh' // GitHub SSH credentials ID in Jenkins
     }
     stages {
         stage('Checkout Code') {
             steps {
-                sshagent(credentials: ['github-ssh']) {
+                sshagent(credentials: [GITHUB_CREDENTIALS]) {
                     git branch: 'main', url: 'git@github.com:velmurugansundaram/Test.git'
                 }
             }
@@ -17,7 +18,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE)
+                    docker.build(DOCKER_IMAGE, '-f Dockerfile .') // Ensure the Dockerfile is in the root of the repo
                 }
             }
         }
@@ -52,3 +53,4 @@ pipeline {
         }
     }
 }
+
