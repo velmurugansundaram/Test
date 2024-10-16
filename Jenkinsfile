@@ -1,10 +1,10 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'my_docker_image' // Specify your Docker image name
-        CONTAINER_NAME = 'ansible_container' // Name of the running container
-        DOCKER_CREDENTIALS = 'dockerhub' // Docker Hub credentials ID in Jenkins
-        GITHUB_CREDENTIALS = 'github-ssh' // GitHub SSH credentials ID in Jenkins
+        DOCKER_IMAGE = 'my_docker_image'
+        CONTAINER_NAME = 'ansible_container'
+        DOCKER_CREDENTIALS = 'dockerhub'
+        GITHUB_CREDENTIALS = 'github-ssh'
     }
     stages {
         stage('Checkout Code') {
@@ -17,6 +17,7 @@ pipeline {
         stage('Install Ansible') {
             steps {
                 script {
+                    // Update and install Ansible without sudo password prompt
                     sh 'sudo apt update'
                     sh 'sudo apt install ansible -y'
                 }
@@ -25,7 +26,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE, '-f Dockerfile .') // Ensure the Dockerfile is in the root of the repo
+                    docker.build(DOCKER_IMAGE, '-f Dockerfile .')
                 }
             }
         }
@@ -33,7 +34,7 @@ pipeline {
             steps {
                 script {
                     docker.image(DOCKER_IMAGE).inside {
-                        sh 'ansible --version' // Example command to check if Ansible is installed
+                        sh 'ansible --version'
                         // Add your Ansible playbook or command here
                     }
                 }
@@ -59,4 +60,3 @@ pipeline {
         }
     }
 }
-
