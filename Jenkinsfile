@@ -2,26 +2,32 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'my_docker_image' // Specify your Docker image name here
-        GITHUB_REPO = 'git@github.com:velmurugansundaram/Test.git' // Your GitHub repository SSH URL
-        DOCKERHUB_CREDENTIALS_ID = 'dockerhub' // Your Jenkins Docker Hub credentials ID
+        DOCKER_IMAGE_NAME = "my_docker_image"
+        DOCKERHUB_CREDENTIALS = 'dockerhub'
+        GIT_REPO = 'git@github.com:velmurugansundaram/Test.git'
+        GIT_BRANCH = 'main'  // Update to your branch name if different
     }
 
     stages {
         stage('Checkout SCM') {
             steps {
-                // Checkout code from GitHub
-                git credentialsId: 'github-ssh', url: GITHUB_REPO
+                script {
+                    // Checkout the specified branch from the repository
+                    checkout([$class: 'GitSCM', branches: [[name: GIT_BRANCH]], userRemoteConfigs: [[url: GIT_REPO, credentialsId: 'github-ssh']]])
+                }
             }
         }
 
         stage('Install Ansible') {
             steps {
                 script {
-                    // Update package lists and install Ansible
+                    // Install Ansible
                     sh '''
-                    sudo apt update
-                    sudo apt install -y ansible
+                    sudo apt update -y
+                    sudo apt install software-properties-common -y
+                    sudo apt-add-repository --yes --update ppa:ansible/ansible
+                    sudo apt install ansible -y
+                    ansible --version
                     '''
                 }
             }
@@ -30,8 +36,10 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build the Docker image
-                    sh 'docker build -t ${DOCKER_IMAGE} .'
+                    // Build Docker image
+                    sh '''
+                    docker build -t ${DOCKER_IMAGE_NAME} .
+                    '''
                 }
             }
         }
@@ -39,11 +47,11 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Run the container as root and execute Ansible command
-                    docker.image(DOCKER_IMAGE).inside('-u root') {
-                        sh 'ansible --version'  // Check Ansible version
-                        // Add your Ansible playbook or command here
-                    }
+                    // Run Docker container and check Ansible version
+                    sh '''
+                    docker run --name ansible_container -d ${DOCKER_IMAGE_NAME} cat
+                    docker exec ansible_container ansible --version
+                    '''
                 }
             }
         }
@@ -51,10 +59,12 @@ pipeline {
         stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Push the Docker image to Docker Hub
-                    withDockerRegistry(credentialsId: DOCKERHUB_CREDENTIALS_ID, url: 'https://index.docker.io/v1/') {
-                        sh 'docker push ${DOCKER_IMAGE}:latest'
-                    }
+                    // Login to Docker Hub and push image
+                    sh '''
+                    docker login -u ${DOCKERHUB_CREDENTIALS} -p $DOCKER_PASSWORD
+                    docker tag ${DOCKER_IMAGE_NAME} velmurugan1412/${DOCKER_IMAGE_NAME}:latest
+                    docker push velmurugan1412/${DOCKER_IMAGE_NAME}:latest
+                    '''
                 }
             }
         }
@@ -63,11 +73,11 @@ pipeline {
     post {
         always {
             script {
-                // Cleanup any resources, if necessary
+                // Clean up any resources
                 sh '''
                 docker stop ansible_container || true
                 docker rm ansible_container || true
-                docker rmi ${DOCKER_IMAGE} || true
+                docker rmi ${DOCKER_IMAGE_NAME} || true
                 '''
             }
         }

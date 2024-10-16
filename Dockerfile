@@ -1,17 +1,18 @@
-# Use an official Python runtime as a parent image
-FROM python:3.9-slim
+# Use a base image
+FROM ubuntu:20.04
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /app
 
-# Copy the current directory contents into the container at /usr/src/app
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    && apt-add-repository --yes --update ppa:ansible/ansible \
+    && apt-get install -y ansible \
+    && apt-get clean
+
+# Copy your playbook and any other necessary files
 COPY . .
 
-# Install Ansible
-RUN apt-get update && apt-get install -y \
-    ansible \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Command to run when the container starts
-CMD ["ansible", "--version"]
+# Define default command
+CMD ["bash"]
