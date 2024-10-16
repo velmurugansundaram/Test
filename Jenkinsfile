@@ -1,10 +1,11 @@
 pipeline {
     agent any
     environment {
-        DOCKER_IMAGE = 'my_docker_image'  // Specify your Docker image name
-        CONTAINER_NAME = 'ansible_container' // Name of the running container
-        DOCKER_CREDENTIALS = 'dockerhub' // Docker Hub credentials ID in Jenkins
-        GITHUB_CREDENTIALS = 'github-ssh' // GitHub SSH credentials ID in Jenkins
+        DOCKER_IMAGE = 'my_docker_image'
+        CONTAINER_NAME = 'ansible_container'
+        DOCKER_CREDENTIALS = 'dockerhub'
+        GITHUB_CREDENTIALS = 'github-ssh'
+        DOCKER_REPO = "velmurugan1412/${DOCKER_IMAGE}" // Your Docker Hub username
     }
     stages {
         stage('Checkout Code') {
@@ -14,41 +15,30 @@ pipeline {
                 }
             }
         }
-        
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE, '-f Dockerfile .') // Ensure the Dockerfile is in the root of the repo
+                    docker.build(DOCKER_IMAGE, '-f Dockerfile .')
                 }
             }
         }
-        
-        stage('Run Docker Container') {
-            steps {
-                script {
-                    sh "docker run -d --name ${CONTAINER_NAME} ${DOCKER_IMAGE}"
-                }
-            }
-        }
-        
         stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKER_CREDENTIALS) {
-                        docker.image(DOCKER_IMAGE).push('latest')
+                    // Tag the image
+                    sh "docker tag ${DOCKER_IMAGE}:latest ${DOCKER_REPO}:latest"
+                    // Push the image to Docker Hub
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS) {
+                        sh "docker push ${DOCKER_REPO}:latest"
                     }
                 }
             }
         }
-    }
-    
-    post {
-        always {
-            script {
-                // Clean up Docker resources
-                sh "docker stop ${CONTAINER_NAME} || true"
-                sh "docker rm ${CONTAINER_NAME} || true"
-                sh "docker rmi ${DOCKER_IMAGE}:latest || true"
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh "docker run -d --name ${CONTAINER_NAME} ${DOCKER_REPO}:latest"
+                }
             }
         }
     }
