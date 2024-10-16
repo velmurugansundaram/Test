@@ -9,7 +9,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 sshagent(credentials: ['github-ssh']) {
-                    git branch: 'main', url: 'git@github.com:velmurugansundaram/jenkins_learning.git'
+                    git branch: 'main', url: 'git@github.com:velmurugansundaram/Test.git'
                 }
             }
         }
