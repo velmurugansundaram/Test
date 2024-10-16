@@ -31,9 +31,9 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    // Run Docker container and check Ansible version
+                    // Run Docker container with a command that keeps it alive
                     sh '''
-                    docker run --name ansible_container -d ${DOCKER_IMAGE_NAME} cat
+                    docker run --name ansible_container -d ${DOCKER_IMAGE_NAME} tail -f /dev/null
                     docker exec ansible_container ansible --version
                     '''
                 }
