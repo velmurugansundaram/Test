@@ -1,61 +1,74 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = 'my_docker_image'
-        CONTAINER_NAME = 'ansible_container'
-        DOCKER_CREDENTIALS = 'dockerhub'
-        GITHUB_CREDENTIALS = 'github-ssh'
+        DOCKER_IMAGE = 'my_docker_image' // Specify your Docker image name here
+        GITHUB_REPO = 'git@github.com:velmurugansundaram/Test.git' // Your GitHub repository SSH URL
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub' // Your Jenkins Docker Hub credentials ID
     }
+
     stages {
-        stage('Checkout Code') {
+        stage('Checkout SCM') {
             steps {
-                sshagent(credentials: [GITHUB_CREDENTIALS]) {
-                    git branch: 'main', url: 'git@github.com:velmurugansundaram/Test.git'
-                }
+                // Checkout code from GitHub
+                git credentialsId: 'github-ssh', url: GITHUB_REPO
             }
         }
+
         stage('Install Ansible') {
             steps {
                 script {
-                    // Update and install Ansible without sudo password prompt
-                    sh 'sudo apt update'
-                    sh 'sudo apt install ansible -y'
+                    // Update package lists and install Ansible
+                    sh '''
+                    sudo apt update
+                    sudo apt install -y ansible
+                    '''
                 }
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build(DOCKER_IMAGE, '-f Dockerfile .')
+                    // Build the Docker image
+                    sh 'docker build -t ${DOCKER_IMAGE} .'
                 }
             }
         }
+
         stage('Run Docker Container') {
             steps {
                 script {
-                    docker.image(DOCKER_IMAGE).inside {
-                        sh 'ansible --version'
+                    // Run the container as root and execute Ansible command
+                    docker.image(DOCKER_IMAGE).inside('-u root') {
+                        sh 'ansible --version'  // Check Ansible version
                         // Add your Ansible playbook or command here
                     }
                 }
             }
         }
+
         stage('Push Docker Image to Docker Hub') {
             steps {
-                withDockerRegistry([credentialsId: DOCKER_CREDENTIALS, url: '']) {
-                    script {
-                        docker.image(DOCKER_IMAGE).push('latest')
+                script {
+                    // Push the Docker image to Docker Hub
+                    withDockerRegistry(credentialsId: DOCKERHUB_CREDENTIALS_ID, url: 'https://index.docker.io/v1/') {
+                        sh 'docker push ${DOCKER_IMAGE}:latest'
                     }
                 }
             }
         }
     }
+
     post {
         always {
             script {
-                sh "docker stop ${CONTAINER_NAME} || true"
-                sh "docker rm ${CONTAINER_NAME} || true"
-                sh "docker rmi ${DOCKER_IMAGE}:latest || true"
+                // Cleanup any resources, if necessary
+                sh '''
+                docker stop ansible_container || true
+                docker rm ansible_container || true
+                docker rmi ${DOCKER_IMAGE} || true
+                '''
             }
         }
     }

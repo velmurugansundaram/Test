@@ -1,18 +1,17 @@
-# Dockerfile
-FROM ubuntu:latest
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-# Install necessary packages and Ansible
-RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:ansible/ansible -y && \
-    apt-get update && \
-    apt-get install -y ansible
+# Set the working directory in the container
+WORKDIR /usr/src/app
 
-# Set the working directory
-WORKDIR /app
-
-# Copy any necessary files (if needed)
+# Copy the current directory contents into the container at /usr/src/app
 COPY . .
 
-# Default command
+# Install Ansible
+RUN apt-get update && apt-get install -y \
+    ansible \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Command to run when the container starts
 CMD ["ansible", "--version"]
