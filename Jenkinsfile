@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE_NAME = "my_docker_image"
-        DOCKERHUB_CREDENTIALS = 'dockerhub'
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub' // Ensure this matches your Jenkins credential ID
         GIT_REPO = 'git@github.com:velmurugansundaram/Test.git'
         GIT_BRANCH = 'main'  // Ensure this is set to your correct branch
     }
@@ -44,11 +44,13 @@ pipeline {
             steps {
                 script {
                     // Login to Docker Hub and push image
-                    sh '''
-                    echo $DOCKER_PASSWORD | docker login -u ${DOCKERHUB_CREDENTIALS} --password-stdin
-                    docker tag ${DOCKER_IMAGE_NAME} velmurugan1412/${DOCKER_IMAGE_NAME}:latest
-                    docker push velmurugan1412/${DOCKER_IMAGE_NAME}:latest
-                    '''
+                    withCredentials([string(credentialsId: DOCKERHUB_CREDENTIALS_ID, variable: 'DOCKER_PASSWORD')]) {
+                        sh '''
+                        echo "${DOCKER_PASSWORD}" | docker login -u velmurugan1412 --password-stdin
+                        docker tag ${DOCKER_IMAGE_NAME} velmurugan1412/${DOCKER_IMAGE_NAME}:latest
+                        docker push velmurugan1412/${DOCKER_IMAGE_NAME}:latest
+                        '''
+                    }
                 }
             }
         }
